@@ -2,6 +2,8 @@ package surfstore
 
 import (
 	context "context"
+	"log"
+	"os"
 	"time"
 
 	grpc "google.golang.org/grpc"
@@ -142,7 +144,13 @@ var _ ClientInterface = new(RPCClient)
 
 // Create an Surfstore RPC client
 func NewSurfstoreRPCClient(hostPort, baseDir string, blockSize int) RPCClient {
-
+	outputMetaPath := ConcatPath(baseDir, DEFAULT_META_FILENAME)
+	if _, err := os.Stat(outputMetaPath); os.IsNotExist(err) {
+		_, e := os.Create(outputMetaPath)
+		if e != nil {
+			log.Fatal("Error During creating file", e)
+		}
+	}
 	return RPCClient{
 		MetaStoreAddr: hostPort,
 		BaseDir:       baseDir,
