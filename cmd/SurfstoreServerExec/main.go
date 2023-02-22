@@ -1,10 +1,13 @@
 package main
 
 import (
+	"cse224/proj4/pkg/surfstore"
 	"flag"
 	"fmt"
+	"google.golang.org/grpc"
 	"io/ioutil"
 	"log"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -12,6 +15,13 @@ import (
 
 // Usage String
 const USAGE_STRING = "./run-server.sh -s <service_type> -p <port> -l -d (blockStoreAddr*)"
+
+const (
+	BOTH  = "both"
+	META  = "meta"
+	BLOCK = "block"
+	TCP   = "tcp"
+)
 
 // Set of valid services
 var SERVICE_TYPES = map[string]bool{"meta": true, "block": true, "both": true}
@@ -67,5 +77,28 @@ func main() {
 }
 
 func startServer(hostAddr string, serviceType string, blockStoreAddr string) error {
-	panic("todo")
+	_, exists := SERVICE_TYPES[serviceType]
+	if !exists {
+		log.Println("Service type %s not supported", serviceType)
+		return nil
+	}
+	grpcServer := grpc.NewServer()
+
+	if serviceType == BOTH || serviceType == META {
+		surfstore.RegisterMetaStoreServer(grpcServer, surfstore.NewMetaStore(blockStoreAddr))
+	}
+
+	if serviceType == BOTH || serviceType == BLOCK {
+		surfstore.RegisterBlockStoreServer(grpcServer, surfstore.NewBlockStore())
+	}
+
+	listener, err := net.Listen(TCP, hostAddr)
+	if err != nil {
+		return err
+	}
+	err = grpcServer.Serve(listener)
+	if err != nil {
+		return err
+	}
+	return nil
 }
