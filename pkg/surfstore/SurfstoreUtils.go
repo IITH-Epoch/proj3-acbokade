@@ -248,7 +248,7 @@ func uploadFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 func deleteFile(fileName string, client RPCClient, localIndex map[string]*FileMetaData, blockStoreAddr string) (int32, error) {
 	version := localIndex[fileName].Version
 	var tombstoneHashList []string = []string{TOMBSTONE_HASHVALUE}
-	localFileMetadata := FileMetaData{Filename: fileName, Version: version, BlockHashList: tombstoneHashList}
+	localFileMetadata := FileMetaData{Filename: fileName, Version: version+1, BlockHashList: tombstoneHashList}
 	var returnedVersion int32
 	err := client.UpdateFile(&localFileMetadata, &returnedVersion)
 	log.Println("UpdateFile return version", returnedVersion, err)
