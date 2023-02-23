@@ -47,7 +47,7 @@ func ClientSync(client RPCClient) {
 			log.Println("Error opening file", err)
 		}
 		hashList := make([]string, 0)
-		// Read each block
+		// Read each block and find its hash and append to hashList
 		for i := 0; i < numBlocks; i++ {
 			block := make([]byte, client.BlockSize)
 			bytesRead, err := file.Read(block)
@@ -98,7 +98,7 @@ func ClientSync(client RPCClient) {
 	editedFiles := make([]string, 0)
 	for fileName := range filesHashListMap {
 		_, exists := localIndex[fileName]
-		_, remoteExists := filesToDownload[fileName]
+		_, remoteExists := remoteIndex[fileName]
 		if !exists && !remoteExists {
 			// File exists now in the local, but doesn't exist in the local index
 			// Also, file doesn't exist in the remote index
@@ -173,6 +173,7 @@ func uploadFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 	var returnedVersion int32
 	localFileMetadata := localIndex[fileName]
 	err = client.UpdateFile(localFileMetadata, &returnedVersion)
+	localIndex[fileName] = localFileMetadata
 	if err != nil {
 		returnedVersion = -1
 	}
