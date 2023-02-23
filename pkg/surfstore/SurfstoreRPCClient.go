@@ -150,8 +150,9 @@ func createIndexDbFile(path string) error {
 		return e
 	}
 	log.Println("index db created")
-	defer indexFile.Close()
+	indexFile.Close()
 	db, err := sql.Open("sqlite3", path)
+	defer db.Close()
 	if err != nil {
 		log.Fatal("Error during opening index.db file", err)
 		return err
@@ -160,12 +161,12 @@ func createIndexDbFile(path string) error {
 	if err != nil {
 		log.Fatal("Error During creating prepare statement for createTable", err)
 	}
-	defer statement.Close()
 	_, err = statement.Exec()
 	if err != nil {
 		log.Fatal("Error while executing the statement", err)
 		return err
 	}
+	statement.Close()
 	log.Println("table created")
 	return nil
 }

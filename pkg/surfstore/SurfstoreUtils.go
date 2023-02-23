@@ -116,6 +116,10 @@ func ClientSync(client RPCClient) {
 				}
 			}
 			if remoteIndex[fileName].Version == localIndex[fileName].Version {
+				// Check if file is already deleted
+				if (len(remoteIndex[fileName].BlockHashList) == 1 && remoteIndex[fileName].BlockHashList[0] == TOMBSTONE_HASHVALUE) {
+					continue
+				}
 				// If file doesnt exist locally but is in localIndex, download it
 				_, exists := filesHashListMap[fileName]
 				if !exists {
@@ -172,6 +176,8 @@ func ClientSync(client RPCClient) {
 	}
 	log.Println("newFilesAdded", newFilesAdded)
 	log.Println("editedFiles", editedFiles)
+	log.Println("filesToDelete", filesToDelete)
+	log.Println("filesToDeleteLocally", filesToDeleteLocally)
 
 	// Check the blocks to be deleted
 	for fileToDelete := range filesToDelete {

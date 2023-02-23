@@ -52,16 +52,17 @@ const insertTuple string = `insert into indexes (fileName, version, hashIndex, h
 // WriteMetaFile writes the file meta map back to local metadata file index.db
 func WriteMetaFile(fileMetas map[string]*FileMetaData, baseDir string) error {
 	// remove index.db file if it exists
-	outputMetaPath := ConcatPath(baseDir, DEFAULT_META_FILENAME)
-	if _, err := os.Stat(outputMetaPath); err == nil {
+	outputMetaPath := filepath.Join(baseDir, DEFAULT_META_FILENAME)
+	if stat, err := os.Stat(outputMetaPath); err == nil {
+		log.Println("***", stat)
 		e := os.Remove(outputMetaPath)
 		if e != nil {
 			log.Fatal("Error during removing index.db file", e)
 		}
-		err := createIndexDbFile(outputMetaPath)
-		if err != nil {
-			log.Fatal("Error while creating index db file", err)
-		}
+	}
+	err := createIndexDbFile(outputMetaPath)
+	if err != nil {
+		log.Fatal("Error while creating index db file", err)
 	}
 	db, err := sql.Open("sqlite3", outputMetaPath)
 	if err != nil {
@@ -115,11 +116,11 @@ func LoadMetaFromMetaFile(baseDir string) (fileMetaMap map[string]*FileMetaData,
 	if err != nil {
 		log.Fatal("Error When Opening Meta")
 	}
+	defer db.Close()
 	rows, err := db.Query(getDistinctFileName)
 	if err != nil {
 		log.Fatal("Error while querying distinct file names", err)
 	}
-	defer rows.Close()
 	var distinctFileNames []fileNameVersion = make([]fileNameVersion, 0)
 	for rows.Next() {
 		var fileName string
@@ -130,12 +131,12 @@ func LoadMetaFromMetaFile(baseDir string) (fileMetaMap map[string]*FileMetaData,
 		}
 		distinctFileNames = append(distinctFileNames, fileNameVersion{fileName, version})
 	}
+	rows.Close()
 	for _, fileNameVersion := range distinctFileNames {
 		rows_, err := db.Query(fmt.Sprintf(getTuplesByFileName, fileNameVersion.fileName, fileNameVersion.version))
 		if err != nil {
 			log.Fatal("Error while querying tuples of file", err)
 		}
-		defer rows_.Close()
 		var hashValues []string = make([]string, 0)
 		for rows_.Next() {
 			var fileName string
@@ -148,6 +149,7 @@ func LoadMetaFromMetaFile(baseDir string) (fileMetaMap map[string]*FileMetaData,
 			}
 			hashValues = append(hashValues, hashValue)
 		}
+		rows_.Close()
 		fileMetaMap[fileNameVersion.fileName] = &FileMetaData{Filename: fileNameVersion.fileName, Version: fileNameVersion.version, BlockHashList: hashValues}
 	}
 	return fileMetaMap, nil
