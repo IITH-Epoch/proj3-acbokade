@@ -106,7 +106,12 @@ func ClientSync(client RPCClient) {
 		} else {
 			// File exists in local but outdated version
 			if remoteIndex[fileName].Version > localIndex[fileName].Version {
-				filesToDownload[fileName] = true
+				// Check if file is deleted or not
+				if len(remoteIndex[fileName].BlockHashList) == 1 && remoteIndex[fileName].BlockHashList[0] == TOMBSTONE_HASHVALUE {
+					deleteLocalFile(fileName, client, remoteIndex, localIndex)
+				} else {
+					filesToDownload[fileName] = true
+				}
 			}
 			if remoteIndex[fileName].Version == localIndex[fileName].Version {
 				// If file doesnt exist locally but is in localIndex, download it
@@ -243,6 +248,18 @@ func uploadFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 	localFileMetadata.Version = returnedVersion
 	localIndex[fileName] = &localFileMetadata
 	return returnedVersion, err
+}
+
+func deleteLocalFile(fileName string, client RPCClient, remoteIndex map[string]*FileMetaData, localIndex map[string]*FileMetaData) (error) {
+	localIndex[fileName] = remoteIndex[fileName]
+	filePath := filepath.Join(client.BaseDir, fileName)
+	if _, err := os.Stat(filePath); err == nil {
+		e := os.Remove(filePath)
+		if e != nil {
+			log.Fatal("Error during removing deleted file", e)
+		}
+	}
+	return nil
 }
 
 func deleteFile(fileName string, client RPCClient, localIndex map[string]*FileMetaData, blockStoreAddr string) (int32, error) {
