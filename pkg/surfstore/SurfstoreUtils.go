@@ -28,6 +28,26 @@ func areEqualHashLists(first, second []string) bool {
 // Implement the logic for a client syncing with the server here.
 func ClientSync(client RPCClient) {
 	log.Println("sync started")
+
+	/*
+	Download cases:
+	1. When file is present locally, in local index and remote index, then if remote index version is more
+	than local index version, download the file - COVERED
+	2. When file is present locally, not in local index but present in remote index, then always download - COVERED
+	3. If file is absent locally, present in both local and remote index, download it - COVERED
+	4. If file is absent locally and in local index but present in remote index, download it. - COVERED
+	*/
+
+	/*
+	Upload cases:
+	1. When file is present locally, and absent in local and remote index - COVERED
+	*/
+
+	/*
+	Delete cases:
+	1. When file is absent locally but present in local and remote index, delete it if local index version
+	equal remote index version.
+	*/
 	// Scan each file in the base directory and compute file's hash list.
 	filesHashListMap := make(map[string][]string) // key - fileName, value - hashlist
 	allFiles, err := ioutil.ReadDir(client.BaseDir)
@@ -78,6 +98,7 @@ func ClientSync(client RPCClient) {
 
 	// Files which are present in remoteIndex and not in localIndex needs to be downloaded
 	filesToDownload := make(map[string]bool)
+	filesToDelete := make(map[string]bool)
 	for fileName := range remoteIndex {
 		_, exists := localIndex[fileName]
 		if !exists {
@@ -86,6 +107,13 @@ func ClientSync(client RPCClient) {
 			// File exists in local but outdated version
 			if remoteIndex[fileName].Version > localIndex[fileName].Version {
 				filesToDownload[fileName] = true
+			}
+			if remoteIndex[fileName].Version == localIndex[fileName].Version {
+				// If file doesnt exist locally but is in localIndex, download it
+				_, exists := filesHashListMap[fileName]
+				if !exists {
+					filesToDelete[fileName] = true
+				}
 			}
 		}
 	}
@@ -125,6 +153,11 @@ func ClientSync(client RPCClient) {
 	}
 	log.Println("newFilesAdded", newFilesAdded)
 	log.Println("editedFiles", editedFiles)
+
+	// Check the blocks to be deleted
+	for fileToDelete := range filesToDelete {
+		deleteFile(fileToDelete, client, localIndex, blockStoreAddr)
+	}
 
 	filesToUpload := make([]string, 0)
 	filesToUpload = append(filesToUpload, newFilesAdded...)
@@ -185,8 +218,13 @@ func uploadFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 		}
 	}
 	log.Println("All Put blocks done")
+	var version int32 = 1
+	_, localExists := localIndex[fileName]
+	if localExists {
+		version = int32(localIndex[fileName].Version)
+	}
 	var returnedVersion int32
-	localFileMetadata := FileMetaData{Filename: fileName, Version: 1, BlockHashList: hashList}
+	localFileMetadata := FileMetaData{Filename: fileName, Version: version, BlockHashList: hashList}
 	err = client.UpdateFile(&localFileMetadata, &returnedVersion)
 	log.Println("UpdateFile return version", returnedVersion, err)
 	if err != nil {
@@ -194,6 +232,22 @@ func uploadFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 	}
 	localFileMetadata.Version = returnedVersion
 	localIndex[fileName] = &localFileMetadata
+	return returnedVersion, err
+}
+
+func deleteFile(fileName string, client RPCClient, localIndex map[string]*FileMetaData, blockStoreAddr string) (int32, error) {
+	version := localIndex[fileName].Version
+	var tombstoneHashList []string = []string{TOMBSTONE_HASHVALUE}
+	localFileMetadata := FileMetaData{Filename: fileName, Version: version, BlockHashList: tombstoneHashList}
+	var returnedVersion int32
+	err := client.UpdateFile(&localFileMetadata, &returnedVersion)
+	log.Println("UpdateFile return version", returnedVersion, err)
+	if err != nil || returnedVersion != version + 1{
+		returnedVersion = -1
+	} else {
+		localFileMetadata.Version = returnedVersion
+		localIndex[fileName] = &localFileMetadata
+	}
 	return returnedVersion, err
 }
 
