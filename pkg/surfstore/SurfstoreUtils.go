@@ -131,6 +131,11 @@ func ClientSync(client RPCClient) {
 	newFilesAdded := make([]string, 0)
 	editedFiles := make([]string, 0)
 	for fileName := range filesHashListMap {
+		_, downloadExists := filesToDownload[fileName]
+		_, deleteExists := filesToDelete[fileName]
+		if downloadExists || deleteExists {
+			continue
+		}
 		_, exists := localIndex[fileName]
 		_, remoteExists := remoteIndex[fileName]
 		if !exists && !remoteExists {
@@ -179,6 +184,7 @@ func ClientSync(client RPCClient) {
 		// 	// WriteMetaFile(localIndex, client.BaseDir)
 		// }
 	}
+	log.Println("last localIndex", localIndex)
 	WriteMetaFile(localIndex, client.BaseDir)
 }
 
