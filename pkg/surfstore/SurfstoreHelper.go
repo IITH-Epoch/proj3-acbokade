@@ -56,7 +56,11 @@ func WriteMetaFile(fileMetas map[string]*FileMetaData, baseDir string) error {
 	if _, err := os.Stat(outputMetaPath); err == nil {
 		e := os.Remove(outputMetaPath)
 		if e != nil {
-			log.Fatal("Error during removing index.db file", err)
+			log.Fatal("Error during removing index.db file", e)
+		}
+		err := createIndexDbFile(outputMetaPath)
+		if err != nil {
+			log.Fatal("Error while creating index db file", err)
 		}
 	}
 	db, err := sql.Open("sqlite3", outputMetaPath)

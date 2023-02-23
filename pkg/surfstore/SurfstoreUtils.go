@@ -27,6 +27,7 @@ func areEqualHashLists(first, second []string) bool {
 
 // Implement the logic for a client syncing with the server here.
 func ClientSync(client RPCClient) {
+	log.Println("sync started")
 	// Scan each file in the base directory and compute file's hash list.
 	filesHashListMap := make(map[string][]string) // key - fileName, value - hashlist
 	allFiles, err := ioutil.ReadDir(client.BaseDir)
@@ -60,16 +61,19 @@ func ClientSync(client RPCClient) {
 		}
 		filesHashListMap[fileName] = hashList
 	}
+	log.Println("filesHashListMap", filesHashListMap)
 
 	// Load local index data from local db file
 	localIndex, err := LoadMetaFromMetaFile(client.BaseDir)
 	if err != nil {
 		log.Println("Error while loading metadata from database", err)
 	}
+	log.Println("localIndex", localIndex)
 
 	// Connect to server and download update FileInfoMap (remote index)
 	var remoteIndex = make(map[string]*FileMetaData)
 	client.GetFileInfoMap(&remoteIndex)
+	log.Println("remoteIndex", remoteIndex)
 
 	// Files which are present in remoteIndex and not in localIndex needs to be downloaded
 	filesToDownload := make(map[string]bool)
@@ -84,6 +88,7 @@ func ClientSync(client RPCClient) {
 			}
 		}
 	}
+	log.Println("filesToDownload", filesToDownload)
 	// Get BlockStoreAddr
 	var blockStoreAddr string
 	client.GetBlockStoreAddr(&blockStoreAddr)
@@ -117,6 +122,8 @@ func ClientSync(client RPCClient) {
 			}
 		}
 	}
+	log.Println("newFilesAdded", newFilesAdded)
+	log.Println("editedFiles", editedFiles)
 
 	filesToUpload := make([]string, 0)
 	filesToUpload = append(filesToUpload, newFilesAdded...)
@@ -124,6 +131,7 @@ func ClientSync(client RPCClient) {
 	// Upload newly added files
 	for _, fileName := range filesToUpload {
 		returnedVersion, err := uploadFile(fileName, client, localIndex, blockStoreAddr)
+		log.Println("returnedVersion", returnedVersion)
 		if err != nil || returnedVersion == -1 {
 			// download only if it exists in remote index
 			_, remoteExists := remoteIndex[fileName]
@@ -131,11 +139,13 @@ func ClientSync(client RPCClient) {
 				// outdated version
 				downloadFile(fileName, client, remoteIndex, localIndex, blockStoreAddr)
 			}
-		} else {
-			// Only if update is successful, update the localIndex db
-			WriteMetaFile(localIndex, client.BaseDir)
-		}
+		} 
+		// else {
+		// 	// Only if update is successful, update the localIndex db
+		// 	// WriteMetaFile(localIndex, client.BaseDir)
+		// }
 	}
+	WriteMetaFile(localIndex, client.BaseDir)
 }
 
 func uploadFile(fileName string, client RPCClient, localIndex map[string]*FileMetaData, blockStoreAddr string) (int32, error) {
@@ -148,10 +158,11 @@ func uploadFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 
 	fileStats, err := os.Stat(localPath)
 	if err != nil {
-		log.Println("Erro while fetching stats", err)
+		log.Println("Error while fetching stats", err)
 	}
 	fileSize := fileStats.Size()
 	numBlocks := getNumberOfBlocks(fileSize, client.BlockSize)
+	hashList := make([]string, 0)
 	for i := 0; i < numBlocks; i++ {
 		blockData := make([]byte, client.BlockSize)
 		bytesRead, err := localFile.Read(blockData)
@@ -159,6 +170,8 @@ func uploadFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 			log.Println("Error while reading the file", err)
 		}
 		blockData = blockData[:bytesRead]
+		blockHash := GetBlockHashString(blockData)
+		hashList = append(hashList, blockHash)
 		blockSize := int32(bytesRead)
 		blockObject := Block{BlockData: blockData, BlockSize: blockSize}
 		var success bool
@@ -170,10 +183,12 @@ func uploadFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 			log.Println("PutBlock method not successful")
 		}
 	}
+	log.Println("All Put blocks done")
 	var returnedVersion int32
-	localFileMetadata := localIndex[fileName]
-	err = client.UpdateFile(localFileMetadata, &returnedVersion)
-	localIndex[fileName] = localFileMetadata
+	localFileMetadata := FileMetaData{Filename: fileName, Version: 1, BlockHashList: hashList}
+	err = client.UpdateFile(&localFileMetadata, &returnedVersion)
+	log.Println("UpdateFile return version", returnedVersion, err)
+	localIndex[fileName] = &localFileMetadata
 	if err != nil {
 		returnedVersion = -1
 	}

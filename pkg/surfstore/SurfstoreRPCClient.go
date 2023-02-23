@@ -143,28 +143,41 @@ func (surfClient *RPCClient) GetBlockStoreAddr(blockStoreAddr *string) error {
 // This line guarantees all method for RPCClient are implemented
 var _ ClientInterface = new(RPCClient)
 
+func createIndexDbFile(path string) error {
+	indexFile, e := os.Create(path)
+	if e != nil {
+		log.Fatal("Error During creating file", e)
+		return e
+	}
+	log.Println("index db created")
+	defer indexFile.Close()
+	db, err := sql.Open("sqlite3", path)
+	if err != nil {
+		log.Fatal("Error during opening index.db file", err)
+		return err
+	}
+	statement, err := db.Prepare(createTable)
+	if err != nil {
+		log.Fatal("Error During creating prepare statement for createTable", err)
+	}
+	defer statement.Close()
+	_, err = statement.Exec()
+	if err != nil {
+		log.Fatal("Error while executing the statement", err)
+		return err
+	}
+	log.Println("table created")
+	return nil
+}
+
 // Create an Surfstore RPC client
 func NewSurfstoreRPCClient(hostPort, baseDir string, blockSize int) RPCClient {
 	outputMetaPath := ConcatPath(baseDir, DEFAULT_META_FILENAME)
 	if _, err := os.Stat(outputMetaPath); os.IsNotExist(err) {
-		_, e := os.Create(outputMetaPath)
-		if e != nil {
-			log.Fatal("Error During creating file", e)
-		}
-		db, err := sql.Open("sqlite3", outputMetaPath)
+		err := createIndexDbFile(outputMetaPath)
 		if err != nil {
-			log.Fatal("Error during opening index.db file", err)
+			log.Fatal("Error while creating index db file", err)
 		}
-		statement, err := db.Prepare(createTable)
-		if err != nil {
-			log.Fatal("Error During creating prepare statement for createTable", err)
-		}
-		defer statement.Close()
-		_, err = statement.Exec()
-		if err != nil {
-			log.Fatal("Error while executing the statement", err)
-		}
-		log.Println("table created")
 	}
 	return RPCClient{
 		MetaStoreAddr: hostPort,
