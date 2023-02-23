@@ -125,8 +125,12 @@ func ClientSync(client RPCClient) {
 	for _, fileName := range filesToUpload {
 		returnedVersion, err := uploadFile(fileName, client, localIndex, blockStoreAddr)
 		if err != nil || returnedVersion == -1 {
-			// outdated version
-			downloadFile(fileName, client, remoteIndex, localIndex, blockStoreAddr)
+			// download only if it exists in remote index
+			_, remoteExists := remoteIndex[fileName]
+			if remoteExists {
+				// outdated version
+				downloadFile(fileName, client, remoteIndex, localIndex, blockStoreAddr)
+			}
 		} else {
 			// Only if update is successful, update the localIndex db
 			WriteMetaFile(localIndex, client.BaseDir)
