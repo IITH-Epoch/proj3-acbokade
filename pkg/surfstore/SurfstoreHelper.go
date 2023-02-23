@@ -39,7 +39,7 @@ func ConcatPath(baseDir, fileDir string) string {
 	Writing Local Metadata File Related
 */
 
-const createTable string = `create table if not exist indexes (
+const createTable string = `create table if not exists indexes (
 		fileName TEXT, 
 		version INT,
 		hashIndex INT,
@@ -56,16 +56,16 @@ func WriteMetaFile(fileMetas map[string]*FileMetaData, baseDir string) error {
 	if _, err := os.Stat(outputMetaPath); err == nil {
 		e := os.Remove(outputMetaPath)
 		if e != nil {
-			log.Fatal("Error During Meta Write Back")
+			log.Fatal("Error during removing index.db file", err)
 		}
 	}
 	db, err := sql.Open("sqlite3", outputMetaPath)
 	if err != nil {
-		log.Fatal("Error During Meta Write Back")
+		log.Fatal("Error during opening index.db file", err)
 	}
 	statement, err := db.Prepare(createTable)
 	if err != nil {
-		log.Fatal("Error During Meta Write Back")
+		log.Fatal("Error During creating prepare statement for createTable", err)
 	}
 	defer statement.Close()
 	_, err = statement.Exec()

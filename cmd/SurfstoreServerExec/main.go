@@ -93,6 +93,7 @@ func startServer(hostAddr string, serviceType string, blockStoreAddr string) err
 	}
 
 	listener, err := net.Listen(TCP, hostAddr)
+	fmt.Println("Started listening")
 	if err != nil {
 		return err
 	}

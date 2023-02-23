@@ -2,6 +2,7 @@ package surfstore
 
 import (
 	context "context"
+	"database/sql"
 	"log"
 	"os"
 	"time"
@@ -150,6 +151,20 @@ func NewSurfstoreRPCClient(hostPort, baseDir string, blockSize int) RPCClient {
 		if e != nil {
 			log.Fatal("Error During creating file", e)
 		}
+		db, err := sql.Open("sqlite3", outputMetaPath)
+		if err != nil {
+			log.Fatal("Error during opening index.db file", err)
+		}
+		statement, err := db.Prepare(createTable)
+		if err != nil {
+			log.Fatal("Error During creating prepare statement for createTable", err)
+		}
+		defer statement.Close()
+		_, err = statement.Exec()
+		if err != nil {
+			log.Fatal("Error while executing the statement", err)
+		}
+		log.Println("table created")
 	}
 	return RPCClient{
 		MetaStoreAddr: hostPort,
