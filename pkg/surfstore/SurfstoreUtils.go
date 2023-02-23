@@ -189,10 +189,11 @@ func uploadFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 	localFileMetadata := FileMetaData{Filename: fileName, Version: 1, BlockHashList: hashList}
 	err = client.UpdateFile(&localFileMetadata, &returnedVersion)
 	log.Println("UpdateFile return version", returnedVersion, err)
-	localIndex[fileName] = &localFileMetadata
 	if err != nil {
 		returnedVersion = -1
 	}
+	localFileMetadata.Version = returnedVersion
+	localIndex[fileName] = &localFileMetadata
 	return returnedVersion, err
 }
 
