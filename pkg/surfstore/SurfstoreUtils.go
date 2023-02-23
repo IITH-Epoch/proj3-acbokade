@@ -59,6 +59,7 @@ func ClientSync(client RPCClient) {
 			blockHash := GetBlockHashString(block)
 			hashList = append(hashList, blockHash)
 		}
+		file.Close()
 		filesHashListMap[fileName] = hashList
 	}
 	log.Println("filesHashListMap", filesHashListMap)
@@ -216,10 +217,10 @@ func downloadFile(fileName string, client RPCClient, remoteIndex map[string]*Fil
 	}
 	defer localFile.Close()
 	// Write metadata of file and update localIndex object (not db)
-	err = WriteMetaFile(remoteIndex, client.BaseDir)
-	if err != nil {
-		log.Println("Error in updating local index", err)
-	}
+	// err = WriteMetaFile(remoteIndex, client.BaseDir)
+	// if err != nil {
+	// 	log.Println("Error in updating local index", err)
+	// }
 	localIndex[fileName] = remoteIndex[fileName]
 	fileContent := ""
 	for _, blockHash := range remoteIndex[fileName].BlockHashList {
