@@ -28,16 +28,16 @@ func (m *MetaStore) UpdateFile(ctx context.Context, fileMetaData *FileMetaData) 
 	fileName := fileMetaData.Filename
 	fileVersion := fileMetaData.Version
 	// Acquire read lock
-	log.Println("server updateFile 1")
+	// log.Println("server updateFile 1")
 	// m.rwMutex.RLock()
 	_, exists := m.FileMetaMap[fileName]
 	// m.rwMutex.RUnlock()
-	log.Println("server updateFile 2")
+	// log.Println("server updateFile 2")
 	if exists {
 		// m.rwMutex.RLock()
 		curFileVersion := m.FileMetaMap[fileName].Version
 		// m.rwMutex.RLock()
-		log.Println("server updateFile 3")
+		// log.Println("server updateFile 3")
 		// Replace the metadata only if the version is 1 greater than current file version
 		if fileVersion == 1+curFileVersion {
 			// m.rwMutex.Lock()
@@ -47,7 +47,7 @@ func (m *MetaStore) UpdateFile(ctx context.Context, fileMetaData *FileMetaData) 
 			// Else send version -1 to the client
 			return &Version{Version: -1}, nil
 		}
-		log.Println("server updateFile 4")
+		// log.Println("server updateFile 4")
 	} else {
 		// m.rwMutex.Lock()
 		m.FileMetaMap[fileName] = fileMetaData

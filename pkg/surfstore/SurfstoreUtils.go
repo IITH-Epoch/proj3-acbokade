@@ -27,7 +27,7 @@ func areEqualHashLists(first, second []string) bool {
 
 // Implement the logic for a client syncing with the server here.
 func ClientSync(client RPCClient) {
-	log.Println("sync started")
+	// log.Println("sync started")
 
 	/*
 		Download cases:
@@ -82,19 +82,19 @@ func ClientSync(client RPCClient) {
 		file.Close()
 		filesHashListMap[fileName] = hashList
 	}
-	log.Println("filesHashListMap", filesHashListMap)
+	// log.Println("filesHashListMap", filesHashListMap)
 
 	// Load local index data from local db file
 	localIndex, err := LoadMetaFromMetaFile(client.BaseDir)
 	if err != nil {
 		log.Println("Error while loading metadata from database", err)
 	}
-	log.Println("localIndex", localIndex)
+	// log.Println("localIndex", localIndex)
 
 	// Connect to server and download update FileInfoMap (remote index)
 	var remoteIndex = make(map[string]*FileMetaData)
 	client.GetFileInfoMap(&remoteIndex)
-	log.Println("remoteIndex", remoteIndex)
+	// log.Println("remoteIndex", remoteIndex)
 
 	// Files which are present in remoteIndex and not in localIndex needs to be downloaded
 	filesToDownload := make(map[string]bool)
@@ -128,7 +128,7 @@ func ClientSync(client RPCClient) {
 			}
 		}
 	}
-	log.Println("filesToDownload", filesToDownload)
+	// log.Println("filesToDownload", filesToDownload)
 	// Get BlockStoreAddr
 	var blockStoreAddr string
 	client.GetBlockStoreAddr(&blockStoreAddr)
@@ -174,10 +174,10 @@ func ClientSync(client RPCClient) {
 			}
 		}
 	}
-	log.Println("newFilesAdded", newFilesAdded)
-	log.Println("editedFiles", editedFiles)
-	log.Println("filesToDelete", filesToDelete)
-	log.Println("filesToDeleteLocally", filesToDeleteLocally)
+	// log.Println("newFilesAdded", newFilesAdded)
+	// log.Println("editedFiles", editedFiles)
+	// log.Println("filesToDelete", filesToDelete)
+	// log.Println("filesToDeleteLocally", filesToDeleteLocally)
 
 	// Check the blocks to be deleted
 	for fileToDelete := range filesToDelete {
@@ -190,7 +190,7 @@ func ClientSync(client RPCClient) {
 	// Upload newly added files
 	for _, fileName := range filesToUpload {
 		returnedVersion, err := uploadFile(fileName, client, localIndex, blockStoreAddr)
-		log.Println("returnedVersion", returnedVersion)
+		// log.Println("returnedVersion", returnedVersion)
 		if err != nil || returnedVersion == -1 {
 			// download only if it exists in remote index
 			_, remoteExists := remoteIndex[fileName]
@@ -204,7 +204,7 @@ func ClientSync(client RPCClient) {
 		// 	// WriteMetaFile(localIndex, client.BaseDir)
 		// }
 	}
-	log.Println("last localIndex", localIndex)
+	// log.Println("last localIndex", localIndex)
 	WriteMetaFile(localIndex, client.BaseDir)
 }
 
@@ -247,7 +247,7 @@ func uploadFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 	if numBlocks == 0 {
 		hashList = append(hashList, EMPTYFILE_HASHVALUE)
 	}
-	log.Println("All Put blocks done")
+	// log.Println("All Put blocks done")
 	var version int32 = 1
 	_, localExists := localIndex[fileName]
 	if localExists {
@@ -256,7 +256,7 @@ func uploadFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 	var returnedVersion int32
 	localFileMetadata := FileMetaData{Filename: fileName, Version: version, BlockHashList: hashList}
 	err = client.UpdateFile(&localFileMetadata, &returnedVersion)
-	log.Println("UpdateFile return version", returnedVersion, err)
+	// log.Println("UpdateFile return version", returnedVersion, err)
 	if err != nil {
 		returnedVersion = -1
 	}
@@ -283,7 +283,7 @@ func deleteFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 	localFileMetadata := FileMetaData{Filename: fileName, Version: version+1, BlockHashList: tombstoneHashList}
 	var returnedVersion int32
 	err := client.UpdateFile(&localFileMetadata, &returnedVersion)
-	log.Println("UpdateFile return version", returnedVersion, err)
+	// log.Println("UpdateFile return version", returnedVersion, err)
 	if err != nil || returnedVersion != version+1 {
 		returnedVersion = -1
 	} else {
