@@ -53,7 +53,7 @@ const insertTuple string = `insert into indexes (fileName, version, hashIndex, h
 func WriteMetaFile(fileMetas map[string]*FileMetaData, baseDir string) error {
 	// remove index.db file if it exists
 	outputMetaPath := ConcatPath(baseDir, DEFAULT_META_FILENAME)
-	log.Println("writeMetaFile filemeta", fileMetas)
+	// log.Println("writeMetaFile filemeta", fileMetas)
 	if _, err := os.Stat(outputMetaPath); err == nil {
 		e := os.Remove(outputMetaPath)
 		if e != nil {
@@ -86,14 +86,14 @@ func WriteMetaFile(fileMetas map[string]*FileMetaData, baseDir string) error {
 		version := fileMetaData.Version
 		hashList := fileMetaData.BlockHashList
 		for hashIndex, hash := range hashList {
-			res, err := statement_.Exec(fileName, version, hashIndex, hash)
-			log.Println("insert rows result:", res)
+			_, err := statement_.Exec(fileName, version, hashIndex, hash)
+			// log.Println("insert rows result:", res)
 			if err != nil {
 				log.Fatal("Error while executing insert tuple statement", err)
 			}
 		}
 	}
-	log.Println("rows inserted")
+	// log.Println("rows inserted")
 	return nil
 }
 
@@ -153,7 +153,7 @@ func LoadMetaFromMetaFile(baseDir string) (fileMetaMap map[string]*FileMetaData,
 		}
 		fileMetaMap[fileNameVersion.fileName] = &FileMetaData{Filename: fileNameVersion.fileName, Version: fileNameVersion.version, BlockHashList: hashValues}
 	}
-	log.Println("query fileMetaMap", fileMetaMap)
+	// log.Println("query fileMetaMap", fileMetaMap)
 	return fileMetaMap, nil
 }
 
