@@ -53,7 +53,7 @@ const insertTuple string = `insert into indexes (fileName, version, hashIndex, h
 func WriteMetaFile(fileMetas map[string]*FileMetaData, baseDir string) error {
 	// remove index.db file if it exists
 	outputMetaPath := filepath.Join(baseDir, DEFAULT_META_FILENAME)
-	if stat, err := os.Stat(outputMetaPath); err == nil {
+	if _, err := os.Stat(outputMetaPath); err == nil {
 		// log.Println("***", stat)
 		e := os.Remove(outputMetaPath)
 		if e != nil {

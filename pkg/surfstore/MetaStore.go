@@ -2,7 +2,7 @@ package surfstore
 
 import (
 	context "context"
-	"log"
+	// "log"
 	"sync"
 
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
