@@ -72,7 +72,7 @@ func ClientSync(client RPCClient) {
 	client.GetFileInfoMap(&remoteIndex)
 
 	// Files which are present in remoteIndex and not in localIndex needs to be downloaded
-	filesToDownload := make(map[string] bool)
+	filesToDownload := make(map[string]bool)
 	for fileName := range remoteIndex {
 		_, exists := localIndex[fileName]
 		if !exists {
@@ -92,7 +92,7 @@ func ClientSync(client RPCClient) {
 	for fileToDownload := range filesToDownload {
 		downloadFile(fileToDownload, client, remoteIndex, localIndex, blockStoreAddr)
 	}
-	
+
 	// Check the files which are newly added or edited
 	newFilesAdded := make([]string, 0)
 	editedFiles := make([]string, 0)
@@ -103,7 +103,7 @@ func ClientSync(client RPCClient) {
 			// File exists now in the local, but doesn't exist in the local index
 			// Also, file doesn't exist in the remote index
 			newFilesAdded = append(newFilesAdded, fileName)
-		} 
+		}
 		if exists && remoteExists {
 			// File exists in the local index, but has been changed since then
 			// Version of the file in the local index and remote index are same
@@ -145,14 +145,14 @@ func uploadFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 		log.Println("Error while opening file", err)
 	}
 	defer localFile.Close()
-	
+
 	fileStats, err := os.Stat(localPath)
 	if err != nil {
 		log.Println("Erro while fetching stats", err)
 	}
 	fileSize := fileStats.Size()
 	numBlocks := getNumberOfBlocks(fileSize, client.BlockSize)
-	for i := 0;i<numBlocks;i++ {
+	for i := 0; i < numBlocks; i++ {
 		blockData := make([]byte, client.BlockSize)
 		bytesRead, err := localFile.Read(blockData)
 		if err != nil {
@@ -161,7 +161,7 @@ func uploadFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 		blockData = blockData[:bytesRead]
 		blockSize := int32(bytesRead)
 		blockObject := Block{BlockData: blockData, BlockSize: blockSize}
-		var success bool 
+		var success bool
 		err = client.PutBlock(&blockObject, blockStoreAddr, &success)
 		if err != nil {
 			log.Println("Error while putting block", err)
@@ -181,7 +181,7 @@ func uploadFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 }
 
 func isFileDeleted(fileMetaData *FileMetaData) bool {
-	if (len(fileMetaData.BlockHashList) == 1 && fileMetaData.BlockHashList[0] == TOMBSTONE_HASHVALUE) {
+	if len(fileMetaData.BlockHashList) == 1 && fileMetaData.BlockHashList[0] == TOMBSTONE_HASHVALUE {
 		return true
 	}
 	return false
@@ -190,7 +190,7 @@ func isFileDeleted(fileMetaData *FileMetaData) bool {
 func downloadFile(fileName string, client RPCClient, remoteIndex map[string]*FileMetaData, localIndex map[string]*FileMetaData, blockStoreAddr string) error {
 	// Check if the file is deleted in the remote index (TOMBSTONE RECORD)
 	if isFileDeleted(remoteIndex[fileName]) {
-		// Copy metadata of file 
+		// Copy metadata of file
 		localIndex[fileName] = remoteIndex[fileName]
 		return nil
 	}
