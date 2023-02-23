@@ -158,6 +158,7 @@ func ClientSync(client RPCClient) {
 	}
 	log.Println("newFilesAdded", newFilesAdded)
 	log.Println("editedFiles", editedFiles)
+	log.Println("deletedFiles", filesToDelete)
 
 	// Check the blocks to be deleted
 	for fileToDelete := range filesToDelete {
@@ -169,6 +170,11 @@ func ClientSync(client RPCClient) {
 	filesToUpload = append(filesToUpload, editedFiles...)
 	// Upload newly added files
 	for _, fileName := range filesToUpload {
+		_, downloadExists := filesToDownload[fileName]
+		_, deleteExists := filesToDelete[fileName]
+		if downloadExists || deleteExists {
+			continue
+		}
 		returnedVersion, err := uploadFile(fileName, client, localIndex, blockStoreAddr)
 		log.Println("returnedVersion", returnedVersion)
 		if err != nil || returnedVersion == -1 {
@@ -223,6 +229,10 @@ func uploadFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 			log.Println("PutBlock method not successful")
 		}
 	}
+	// Empty file has hashvalue -1
+	if numBlocks == 0 {
+		hashList = []string{"-1"}
+	}
 	log.Println("All Put blocks done")
 	var version int32 = 1
 	_, localExists := localIndex[fileName]
@@ -238,17 +248,20 @@ func uploadFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 	}
 	localFileMetadata.Version = returnedVersion
 	localIndex[fileName] = &localFileMetadata
+	log.Println("hashList", hashList)
+	log.Println("localFileMetadata", &localFileMetadata)
+	log.Println("localIndex", localIndex)
 	return returnedVersion, err
 }
 
 func deleteFile(fileName string, client RPCClient, localIndex map[string]*FileMetaData, blockStoreAddr string) (int32, error) {
 	version := localIndex[fileName].Version
 	var tombstoneHashList []string = []string{TOMBSTONE_HASHVALUE}
-	localFileMetadata := FileMetaData{Filename: fileName, Version: version, BlockHashList: tombstoneHashList}
+	localFileMetadata := FileMetaData{Filename: fileName, Version: version + 1, BlockHashList: tombstoneHashList}
 	var returnedVersion int32
 	err := client.UpdateFile(&localFileMetadata, &returnedVersion)
 	log.Println("UpdateFile return version", returnedVersion, err)
-	if err != nil || returnedVersion != version+1 {
+	if err != nil {
 		returnedVersion = -1
 	} else {
 		localFileMetadata.Version = returnedVersion
