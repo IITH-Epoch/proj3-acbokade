@@ -223,6 +223,10 @@ func uploadFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 			log.Println("PutBlock method not successful")
 		}
 	}
+	// Empty file has hashvalue -1
+	if numBlocks == 0 {
+		hashList = append(hashList, EMPTYFILE_HASHVALUE)
+	}
 	log.Println("All Put blocks done")
 	var version int32 = 1
 	_, localExists := localIndex[fileName]
