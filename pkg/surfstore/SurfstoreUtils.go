@@ -30,23 +30,23 @@ func ClientSync(client RPCClient) {
 	log.Println("sync started")
 
 	/*
-	Download cases:
-	1. When file is present locally, in local index and remote index, then if remote index version is more
-	than local index version, download the file - COVERED
-	2. When file is present locally, not in local index but present in remote index, then always download - COVERED
-	3. If file is absent locally, present in both local and remote index, download it - COVERED
-	4. If file is absent locally and in local index but present in remote index, download it. - COVERED
+		Download cases:
+		1. When file is present locally, in local index and remote index, then if remote index version is more
+		than local index version, download the file - COVERED
+		2. When file is present locally, not in local index but present in remote index, then always download - COVERED
+		3. If file is absent locally, present in both local and remote index, download it - COVERED
+		4. If file is absent locally and in local index but present in remote index, download it. - COVERED
 	*/
 
 	/*
-	Upload cases:
-	1. When file is present locally, and absent in local and remote index - COVERED
+		Upload cases:
+		1. When file is present locally, and absent in local and remote index - COVERED
 	*/
 
 	/*
-	Delete cases:
-	1. When file is absent locally but present in local and remote index, delete it if local index version
-	equal remote index version.
+		Delete cases:
+		1. When file is absent locally but present in local and remote index, delete it if local index version
+		equal remote index version.
 	*/
 	// Scan each file in the base directory and compute file's hash list.
 	filesHashListMap := make(map[string][]string) // key - fileName, value - hashlist
@@ -173,7 +173,7 @@ func ClientSync(client RPCClient) {
 				// outdated version
 				downloadFile(fileName, client, remoteIndex, localIndex, blockStoreAddr)
 			}
-		} 
+		}
 		// else {
 		// 	// Only if update is successful, update the localIndex db
 		// 	// WriteMetaFile(localIndex, client.BaseDir)
@@ -221,7 +221,7 @@ func uploadFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 	var version int32 = 1
 	_, localExists := localIndex[fileName]
 	if localExists {
-		version = int32(localIndex[fileName].Version)
+		version = 1 + int32(localIndex[fileName].Version)
 	}
 	var returnedVersion int32
 	localFileMetadata := FileMetaData{Filename: fileName, Version: version, BlockHashList: hashList}
@@ -242,7 +242,7 @@ func deleteFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 	var returnedVersion int32
 	err := client.UpdateFile(&localFileMetadata, &returnedVersion)
 	log.Println("UpdateFile return version", returnedVersion, err)
-	if err != nil || returnedVersion != version + 1{
+	if err != nil || returnedVersion != version+1 {
 		returnedVersion = -1
 	} else {
 		localFileMetadata.Version = returnedVersion
