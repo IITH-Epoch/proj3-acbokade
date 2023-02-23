@@ -99,6 +99,7 @@ func ClientSync(client RPCClient) {
 	// Files which are present in remoteIndex and not in localIndex needs to be downloaded
 	filesToDownload := make(map[string]bool)
 	filesToDelete := make(map[string]bool)
+	filesToDeleteLocally := make(map[string]bool)
 	for fileName := range remoteIndex {
 		_, exists := localIndex[fileName]
 		if !exists {
@@ -108,6 +109,7 @@ func ClientSync(client RPCClient) {
 			if remoteIndex[fileName].Version > localIndex[fileName].Version {
 				// Check if file is deleted or not
 				if len(remoteIndex[fileName].BlockHashList) == 1 && remoteIndex[fileName].BlockHashList[0] == TOMBSTONE_HASHVALUE {
+					filesToDeleteLocally[fileName] = true
 					deleteLocalFile(fileName, client, remoteIndex, localIndex)
 				} else {
 					filesToDownload[fileName] = true
@@ -132,13 +134,20 @@ func ClientSync(client RPCClient) {
 		downloadFile(fileToDownload, client, remoteIndex, localIndex, blockStoreAddr)
 	}
 
+	// Check the blocks to be downloaded
+	for fileToDeleteLocally := range filesToDeleteLocally {
+		deleteLocalFile(fileToDeleteLocally, client, remoteIndex, localIndex)	
+	}
+
+
 	// Check the files which are newly added or edited
 	newFilesAdded := make([]string, 0)
 	editedFiles := make([]string, 0)
 	for fileName := range filesHashListMap {
 		_, downloadExists := filesToDownload[fileName]
 		_, deleteExists := filesToDelete[fileName]
-		if downloadExists || deleteExists {
+		_, deleteLocallyExists := filesToDeleteLocally[fileName]
+		if downloadExists || deleteExists || deleteLocallyExists {
 			continue
 		}
 		_, exists := localIndex[fileName]
